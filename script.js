@@ -285,6 +285,11 @@ function escapeXml(text) {
 
 async function makeRequest(url, isPreview, text, isDenoApi, requestId = '', speakerId = null) {
     try {
+        // Check internet connectivity first
+        if (!navigator.onLine) {
+            throw new Error('网络连接已断开，请检查您的网络连接后重试');
+        }
+
         // 转义文本中的特殊字符，但保护 SSML 标签
         const escapedText = escapeXml(text);
         
@@ -335,40 +340,56 @@ async function makeRequest(url, isPreview, text, isDenoApi, requestId = '', spea
         const requestOptions = {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
+            // Add timeout to the request
+            signal: AbortSignal.timeout(30000) // 30 seconds timeout
         };
 
         console.log('发送请求到:', url);
         
-        const response = await fetch(url, requestOptions);
+        try {
+            const response = await fetch(url, requestOptions);
+            
+            if (response.status === 401) {
+                console.error('认证失败，服务器返回 401');
+                throw new Error('API认证失败，请检查API密钥设置');
+            }
 
-        if (response.status === 401) {
-            console.error('认证失败，服务器返回 401');
-            throw new Error('API认证失败，请检查API密钥设置');
+            if (response.status === 429) {
+                throw new Error('请求过于频繁，请稍后再试');
+            }
+
+            if (!response.ok) {
+                console.error('服务器响应错误:', response.status, response.statusText);
+                throw new Error(`服务器响应错误: ${response.status} - ${response.statusText || '未知错误'}`);
+            }
+
+            const blob = await response.blob();
+            
+            // 验证返回的blob是否为有效的音频文件
+            if (!blob.type.includes('audio/') || blob.size === 0) {
+                throw new Error('无效的音频文件');
+            }
+
+            if (!isPreview) {
+                currentAudioURL = URL.createObjectURL(blob);
+                $('#result').show();
+                $('#audio').attr('src', currentAudioURL);
+                $('#download')
+                    .removeClass('disabled')
+                    .attr('href', currentAudioURL);
+            }
+
+            return blob;
+        } catch (fetchError) {
+            if (fetchError.name === 'AbortError') {
+                throw new Error('请求超时，请稍后再试');
+            } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
+                throw new Error(`无法连接到服务器 ${apiName}，请检查网络连接或更换API`);
+            } else {
+                throw fetchError;
+            }
         }
-
-        if (!response.ok) {
-            console.error('服务器响应错误:', response.status, response.statusText);
-            throw new Error(`服务器响应错误: ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        
-        // 验证返回的blob是否为有效的音频文件
-        if (!blob.type.includes('audio/') || blob.size === 0) {
-            throw new Error('无效的音频文件');
-        }
-
-        if (!isPreview) {
-            currentAudioURL = URL.createObjectURL(blob);
-            $('#result').show();
-            $('#audio').attr('src', currentAudioURL);
-            $('#download')
-                .removeClass('disabled')
-                .attr('href', currentAudioURL);
-        }
-
-        return blob;
     } catch (error) {
         console.error('请求错误:', error);
         showError(error.message);
@@ -622,10 +643,10 @@ function splitText(text, maxLength = 5000) {
             ',', ':',                // 英文
             '、', '，', '：',         // 日文
             '︑', '︓',              // 全角
-            '､', ':', '،',          // 半角/阿拉伯文
+            '､', ':', '，',          // 半角/阿拉伯文
             '፣', '፥',               // 埃塞俄比亚文
             '၊', '၌',               // 缅甸文
-            '،', '؍',               // 波斯文
+            '、', '؍',               // 波斯文
             '׀', '，'                // 希伯来文
         ],
         
