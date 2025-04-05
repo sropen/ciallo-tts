@@ -183,10 +183,6 @@
             "es-PE-CamilaNeural": "Camila-西班牙语(秘鲁)",
             "es-PR-KarinaNeural": "Karina-西班牙语(波多黎各)",
             "es-PR-VictorNeural": "Victor-西班牙语(波多黎各)",
-            "es-PY-MarioNeural": "Mario-西班牙语(巴拉圭)",
-            "es-PY-TaniaNeural": "Tania-西班牙语(巴拉圭)",
-            "es-SV-LorenaNeural": "Lorena-西班牙语(萨尔瓦多)",
-            "es-SV-RodrigoNeural": "Rodrigo-西班牙语(萨尔瓦多)",
             "es-US-AlonsoNeural": "Alonso-西班牙语(美国)",
             "es-US-PalomaNeural": "Paloma-西班牙语(美国)",
             "es-UY-MateoNeural": "Mateo-西班牙语(乌拉圭)",
@@ -618,6 +614,20 @@
             "zu-ZA-ThandoNeural": "Thando-祖鲁语（南非）",
             "zu-ZA-ThembaNeural": "Themba-祖鲁语（南非）"
         }
+    },
+    "openai-tts": {
+        "speakers": {
+            "alloy": "Alloy - 中性专业声音",
+            "echo": "Echo - 深沉有力声音",
+            "fable": "Fable - 英式口音叙事声音", 
+            "onyx": "Onyx - 深沉雄厚声音",
+            "nova": "Nova - 温暖友好女声",
+            "shimmer": "Shimmer - 明亮活泼声音",
+            "ballad": "Ballad - 平静饱满声音",
+            "coral": "Coral - 温和温暖女声", 
+            "sage": "Sage - 稳重低沉声音",
+            "ash": "Ash - 直接开朗声音",
+            "verse": "Verse - 明亮富有韵律声音"
+        }
     }
 }
-    

@@ -11,6 +11,10 @@ const API_CONFIG = {
     },
     'deno-api': {
         url: 'https://deno-tts.api.zwei.de.eu.org/tts'
+    },
+    'openai-tts': {
+        url: 'https://oai-tts.zwei.de.eu.org/v1/audio/speech',
+        needsInstructions: true
     }
 };
 
@@ -38,6 +42,13 @@ function updateSpeakerOptions(apiName) {
     Object.entries(speakers).forEach(([key, value]) => {
         speakerSelect.append(new Option(value, key));
     });
+    
+    // Show/hide instructions field based on API
+    if (API_CONFIG[apiName].needsInstructions) {
+        $('#instructionsGroup').show();
+    } else {
+        $('#instructionsGroup').hide();
+    }
 }
 
 function updateSliderLabel(sliderId, labelId) {
@@ -73,9 +84,19 @@ $(document).ready(function() {
             
             const tips = {
                 'workers-api': '使用 Workers API，每天限制 100000 次请求',
-                'deno-api': '使用 Deno API，基于 Lobe-TTS，暂不支持语速语调调整'
+                'deno-api': '使用 Deno API，基于 Lobe-TTS，暂不支持语速语调调整',
+                'openai-tts': '使用 OpenAI TTS API，支持情感提示语'
             };
             $('#apiTips').text(tips[apiName] || '');
+            
+            // 启用或禁用速率和音调滑块
+            if (apiName === 'deno-api' || apiName === 'openai-tts') {
+                $('#rate, #pitch').prop('disabled', true);
+                $('#rateGroup, #pitchGroup').addClass('disabled-control');
+            } else {
+                $('#rate, #pitch').prop('disabled', false);
+                $('#rateGroup, #pitchGroup').removeClass('disabled-control');
+            }
         });
 
         updateSliderLabel('rate', 'rateValue');
@@ -154,6 +175,15 @@ async function generateVoice(isPreview) {
     if (!text) {
         showError('请输入要转换的文本');
         return;
+    }
+
+    // 检查 OpenAI TTS 的指令字段
+    if (apiName === 'openai-tts' && API_CONFIG[apiName].needsInstructions) {
+        const instructions = $('#instructions').val().trim();
+        if (instructions && instructions.length > 1000) {
+            showError('情感提示最多支持1000个字符');
+            return;
+        }
     }
 
     if (isPreview) {
@@ -277,16 +307,35 @@ async function makeRequest(url, isPreview, text, isDenoApi, requestId = '', spea
         // 使用传入的speakerId（如果有）或者当前选择的speakerId
         const voice = speakerId || $('#speaker').val();
         
-        const requestOptions = {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
+        let requestBody;
+        
+        // 根据不同API构建请求体
+        if (apiName === 'openai-tts') {
+            requestBody = {
+                input: escapedText,
+                voice: voice,
+                response_format: 'mp3'
+            };
+            
+            // 添加instructions参数（如果有）
+            const instructions = $('#instructions').val().trim();
+            if (instructions) {
+                requestBody.instructions = instructions;
+            }
+        } else {
+            requestBody = {
                 text: escapedText,
                 voice: voice,
                 rate: parseInt($('#rate').val()),
                 pitch: parseInt($('#pitch').val()),
                 preview: isPreview
-            })
+            };
+        }
+
+        const requestOptions = {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(requestBody)
         };
 
         console.log('发送请求到:', url);

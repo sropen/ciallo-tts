@@ -268,3 +268,12 @@ footer a:hover {
 .toast-loading .fa-spinner {
     margin-right: 8px;
 }
+
+.disabled-control {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.disabled-control label {
+    color: #888;
+}
